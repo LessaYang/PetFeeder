@@ -5,15 +5,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ title or "Smart Pet Feeder" }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <!-- Tailwind (for layout responsiveness) -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
-<body class="bg-gray-100 text-gray-800 transition-colors duration-300" id="body">
-
+<body id="body">
   <!-- Top Navigation Bar -->
-  <nav class="bg-blue-600 text-white p-4 flex justify-between items-center">
-    <h1 class="font-bold text-xl">🐾 Smart Pet Feeder</h1>
+  <nav class="p-4 flex justify-between items-center">
+    <h1 class="font-bold text-xl flex items-center">🐾 Smart Pet Feeder</h1>
 
     <!-- Desktop Menu -->
     <div class="hidden md:flex items-center space-x-4">
@@ -22,21 +25,25 @@
       <a href="/logs" class="hover:underline">Logs</a>
       <a href="/sensors" class="hover:underline">Sensors</a>
       <a href="/camera" class="hover:underline">Camera</a>
-      <button onclick="toggleDarkMode()" id="darkBtn" class="bg-white text-blue-600 font-semibold px-2 py-1 rounded text-sm hover:bg-gray-200">🌙 Dark</button>
+      <button onclick="toggleDarkMode()" id="darkBtn" class="bg-white text-blue-600 font-semibold px-2 py-1 rounded text-sm hover:bg-gray-200">
+        🌙 Dark
+      </button>
     </div>
 
     <!-- Mobile Menu Button -->
-    <button class="md:hidden" id="menuBtn">☰</button>
+    <button class="md:hidden text-2xl" id="menuBtn">☰</button>
   </nav>
 
   <!-- Mobile Dropdown -->
-  <div id="mobileMenu" class="hidden bg-blue-500 text-white flex flex-col p-4 space-y-2 md:hidden">
+  <div id="mobileMenu" class="hidden flex-col p-4 space-y-2 md:hidden">
     <a href="/" class="hover:underline">Home</a>
     <a href="/schedule" class="hover:underline">Schedule</a>
     <a href="/logs" class="hover:underline">Logs</a>
     <a href="/sensors" class="hover:underline">Sensors</a>
     <a href="/camera" class="hover:underline">Camera</a>
-    <button onclick="toggleDarkMode()" class="bg-white text-blue-600 font-semibold px-2 py-1 rounded text-sm hover:bg-gray-200">🌙 Dark</button>
+    <button onclick="toggleDarkMode()" id="darkBtnMobile" class="bg-white text-blue-600 font-semibold px-2 py-1 rounded text-sm hover:bg-gray-200">
+      🌙 Dark
+    </button>
   </div>
 
   <!-- Main Content -->
@@ -44,38 +51,43 @@
     {% block content %}{% endblock %}
   </main>
 
+  <!-- =======================
+       JavaScript Section
+       ======================= -->
   <script>
-    // Toggle mobile menu
+    // --- Elements ---
+    const body = document.getElementById('body');
+    const navbar = document.querySelector('nav');
     const menuBtn = document.getElementById('menuBtn');
     const mobileMenu = document.getElementById('mobileMenu');
+    const darkBtn = document.getElementById('darkBtn');
+    const darkBtnMobile = document.getElementById('darkBtnMobile');
+
+    // --- Mobile menu toggle ---
     menuBtn.addEventListener('click', () => {
       mobileMenu.classList.toggle('hidden');
+      mobileMenu.classList.toggle('show');
     });
 
-    // Dark mode toggle + remember choice
-    const body = document.getElementById('body');
-    const darkBtn = document.getElementById('darkBtn');
-
+    // --- Set dark mode ---
     function setDarkMode(on) {
-      if (on) {
-        body.classList.add('bg-gray-900', 'text-white');
-        body.classList.remove('bg-gray-100', 'text-gray-800');
-        localStorage.setItem('darkmode', 'true');
-        if (darkBtn) darkBtn.textContent = '☀️ Light';
-      } else {
-        body.classList.remove('bg-gray-900', 'text-white');
-        body.classList.add('bg-gray-100', 'text-gray-800');
-        localStorage.setItem('darkmode', 'false');
-        if (darkBtn) darkBtn.textContent = '🌙 Dark';
-      }
+      body.classList.toggle('dark', on); // apply .dark class globally
+      navbar.style.backgroundColor = on ? '#0f172a' : '#2563eb'; // navbar color
+
+      const darkText = on ? '☀️ Light' : '🌙 Dark';
+      if (darkBtn) darkBtn.textContent = darkText;
+      if (darkBtnMobile) darkBtnMobile.textContent = darkText;
+
+      localStorage.setItem('darkmode', on ? 'true' : 'false');
     }
 
+    // --- Toggle dark mode ---
     function toggleDarkMode() {
       const isDark = localStorage.getItem('darkmode') === 'true';
       setDarkMode(!isDark);
     }
 
-    // Apply saved mode on load
+    // --- Load saved mode on start ---
     window.addEventListener('DOMContentLoaded', () => {
       const saved = localStorage.getItem('darkmode') === 'true';
       setDarkMode(saved);

@@ -1,24 +1,27 @@
-/* ===============================
-   Smart Pet Feeder Web Dashboard
-   Simple Local Styling
-   =============================== */
+/* =====================================================
+   Smart Pet Feeder Dashboard
+   Light + Dark Mode Compatible
+   ===================================================== */
 
+/* --- Base --- */
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
   background-color: #f4f6f8;
   color: #333;
   margin: 0;
   padding: 0;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Navigation Bar */
+/* --- Navbar --- */
 nav {
-  background-color: #0078d7;
+  background-color: #2563eb; /* Tailwind blue-600 */
   color: white;
   padding: 12px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 nav a {
@@ -26,49 +29,83 @@ nav a {
   margin-left: 16px;
   text-decoration: none;
   font-weight: 500;
+  transition: color 0.3s ease;
 }
 
 nav a:hover {
   text-decoration: underline;
 }
 
-/* Page content */
+nav button {
+  transition: all 0.3s ease;
+}
+
+/* --- Mobile dropdown menu --- */
+#mobileMenu {
+  background-color: #2563eb;
+  transition: background-color 0.3s ease, color 0.3s ease, max-height 0.3s ease;
+  overflow: hidden;
+  max-height: 0;
+}
+
+#mobileMenu.show {
+  max-height: 300px;
+}
+
+#mobileMenu a,
+#mobileMenu button {
+  color: white;
+  text-align: left;
+  padding: 8px 0;
+  font-size: 1rem;
+}
+
+/* --- Page Layout --- */
 main {
   padding: 24px;
   max-width: 900px;
   margin: auto;
 }
 
-/* Headings */
-h1, h2, h3 {
-  margin-top: 0;
-  color: #222;
-}
-
-/* Cards */
+/* --- Cards and containers --- */
 .card {
   background-color: white;
+  border: 1px solid #ddd;
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-/* Tables */
+/* --- Headings --- */
+h1,
+h2,
+h3 {
+  color: #222;
+  margin-top: 0;
+  transition: color 0.3s ease;
+}
+
+/* --- Tables --- */
 table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 10px;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-table th, table td {
+table th,
+table td {
   padding: 10px;
   border-bottom: 1px solid #ddd;
   text-align: left;
 }
 
 table th {
-  background-color: #0078d7;
+  background-color: #2563eb;
   color: white;
 }
 
@@ -76,56 +113,126 @@ table tr:hover {
   background-color: #f1f1f1;
 }
 
-/* Buttons */
-button, .btn {
-  background-color: #0078d7;
+/* --- Buttons --- */
+button,
+.btn {
+  background-color: #2563eb;
   color: white;
   border: none;
   padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 15px;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-button:hover, .btn:hover {
-  background-color: #005fa3;
+button:hover,
+.btn:hover {
+  background-color: #1e4ecf;
 }
 
-/* Inputs */
-input[type="number"], input[type="text"], input[type="time"] {
+/* --- Inputs --- */
+input[type="number"],
+input[type="text"],
+input[type="time"] {
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 6px;
   font-size: 15px;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-}
-
-/* Links */
-a {
-  color: #0078d7;
-}
-
-a:hover {
-  color: #005fa3;
-}
-
-/* Utility spacing */
+/* --- Utility --- */
 .center {
   text-align: center;
 }
 
-.mb-2 { margin-bottom: 8px; }
-.mb-4 { margin-bottom: 16px; }
-.mb-6 { margin-bottom: 24px; }
+.mb-2 {
+  margin-bottom: 8px;
+}
 
-/* Camera stream */
+.mb-4 {
+  margin-bottom: 16px;
+}
+
+.mb-6 {
+  margin-bottom: 24px;
+}
+
+/* --- Images --- */
 img {
   max-width: 100%;
   border-radius: 10px;
+  transition: filter 0.3s ease;
+}
+
+/* =====================================================
+   DARK MODE STYLES
+   ===================================================== */
+
+body.dark {
+  background-color: #121212;
+  color: #eaeaea;
+}
+
+body.dark nav {
+  background-color: #0f172a; /* dark navy blue */
+  color: #f1f1f1;
+}
+
+body.dark #mobileMenu {
+  background-color: #0f172a;
+}
+
+body.dark .card {
+  background-color: #1e1e1e;
+  color: #f1f1f1;
+  border-color: #2d2d2d;
+}
+
+body.dark a,
+body.dark h1,
+body.dark h2 {
+  color: #f1f1f1;
+}
+
+body.dark h3,
+body.dark th,
+body.dark td,
+body.dark label {
+  color: #1e1e1e
+}
+
+body.dark p {
+  color: #444444;
+}
+
+body.dark table th {
+  background-color: #1e40af; /* slightly darker blue header */
+}
+
+body.dark table tr:hover {
+  background-color: #252525;
+}
+
+body.dark button,
+body.dark .btn {
+  background-color: #2563eb;
+  color: white;
+}
+
+body.dark button:hover {
+  background-color: #1e4ecf;
+}
+
+body.dark input[type="number"],
+body.dark input[type="text"],
+body.dark input[type="time"] {
+  background-color: #f1f1f1;
+  color: #444444;
+  border-color: #3a3a3a;
+}
+
+body.dark img {
+  filter: brightness(0.9);
 }
