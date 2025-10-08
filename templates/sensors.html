@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">Sensor Data</h2>
+
+{% if data %}
+  <table class="bg-white rounded-lg shadow w-full">
+    <thead class="bg-blue-600 text-white">
+      <tr>
+        <th class="p-2 text-left">Timestamp</th>
+        <th class="p-2 text-left">Food Level (%)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in data %}
+      <tr class="border-b hover:bg-gray-100">
+        <td class="p-2">{{ d.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+        <td class="p-2">{{ d.level }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>No sensor data yet.</p>
+{% endif %}
+{% endblock %}

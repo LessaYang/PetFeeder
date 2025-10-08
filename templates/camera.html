@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">Camera Control</h2>
+
+<div class="bg-white p-4 rounded-lg shadow">
+  <button onclick="toggleCamera('on')" class="bg-green-600 text-white px-4 py-2 rounded mr-2">Turn ON</button>
+  <button onclick="toggleCamera('off')" class="bg-red-600 text-white px-4 py-2 rounded">Turn OFF</button>
+</div>
+
+<!-- Optional live stream preview (if PiCam running MJPEG server) -->
+<div class="bg-white p-4 rounded-lg shadow mt-4">
+  <h3 class="font-semibold mb-2">Live Stream</h3>
+  <img id="stream" src="http://raspberrypi.local:8080/stream" alt="Camera Stream" class="rounded w-full max-w-lg">
+</div>
+
+<script>
+function toggleCamera(state) {
+  fetch(`/api/camera/${state}`)
+    .then(res => res.json())
+    .then(data => alert(data.status || data.error));
+}
+</script>
+{% endblock %}

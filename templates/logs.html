@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">Feeding Logs</h2>
+
+{% if logs %}
+  <table class="bg-white rounded-lg shadow w-full">
+    <thead class="bg-blue-600 text-white">
+      <tr>
+        <th class="p-2 text-left">Timestamp</th>
+        <th class="p-2 text-left">Amount (g)</th>
+        <th class="p-2 text-left">Result</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr class="border-b hover:bg-gray-100">
+        <td class="p-2">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+        <td class="p-2">{{ log.amount }}</td>
+        <td class="p-2">{{ log.result }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>No feeding logs yet.</p>
+{% endif %}
+{% endblock %}

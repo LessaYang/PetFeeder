@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">Dashboard</h2>
+
+<!-- Food Level -->
+<div class="bg-white rounded-lg shadow p-4 mb-6">
+  <h3 class="font-semibold text-lg mb-2">Food Level</h3>
+  {% if sensor %}
+    <p class="text-3xl font-bold text-green-600">{{ sensor.level }}%</p>
+    <p class="text-gray-500 text-sm">Last updated: {{ sensor.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</p>
+  {% else %}
+    <p>No sensor data yet.</p>
+  {% endif %}
+</div>
+
+<!-- Feeding Schedule -->
+<div class="bg-white rounded-lg shadow p-4 mb-6">
+  <h3 class="font-semibold text-lg mb-2">Feeding Schedule</h3>
+  {% if schedules %}
+    <ul>
+      {% for s in schedules %}
+        <li class="border-b py-2">{{ s.time }} — {{ s.portion }}g</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No scheduled feedings yet.</p>
+  {% endif %}
+</div>
+
+<!-- Manual Feed -->
+<div class="bg-white rounded-lg shadow p-4">
+  <h3 class="font-semibold text-lg mb-2">Manual Feed</h3>
+  <form action="/feed_now" method="POST" class="flex gap-2">
+    <input type="number" name="portion" placeholder="Portion (g)" class="border p-2 rounded w-40" required />
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Feed Now</button>
+  </form>
+</div>
+{% endblock %}
