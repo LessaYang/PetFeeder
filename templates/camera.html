@@ -2,39 +2,80 @@
 {% block content %}
 <div class="card">
   <h2 class="text-xl font-semibold mb-2">Live Camera</h2>
-  <p class="mb-4">View your pet in real time below. The camera stream automatically updates when turned on.</p>
+  <p class="mb-4">
+    View your pet in real time. The stream automatically updates when available.
+  </p>
 
-  <!-- Stream URL form (optional override) -->
+  <!-- Stream URL field (auto-filled from Flask) -->
   <form id="urlForm" class="mb-4">
-    <label for="streamUrl" class="block text-sm font-medium mb-1">Stream URL</label>
-    <input type="text" id="streamUrl" name="streamUrl"
-           class="w-full border border-gray-300 rounded px-2 py-1"
-           value="http://192.168.1.15:8080/?action=stream">
+    <label for="streamUrl" class="block text-sm font-medium mb-1">
+      Stream URL (auto-detected, change for ngrok if needed)
+    </label>
+    <input
+      type="text"
+      id="streamUrl"
+      name="streamUrl"
+      class="w-full border border-gray-300 rounded px-2 py-1"
+      value="{{ stream_url }}"
+    />
   </form>
 
-  <!-- Live Stream -->
-  <div class="rounded overflow-hidden border border-gray-400 bg-black">
-    <img id="stream" src="http://<your_pi_ip>:8080/?action=stream"
-         alt="Camera stream"
-         class="w-full h-auto block" style="max-height: 480px;">
+  <!-- Live Stream Viewer -->
+  <div
+    class="rounded overflow-hidden border border-gray-400 bg-black flex justify-center items-center"
+    style="min-height: 300px;"
+  >
+    <img
+      id="stream"
+      src="{{ stream_url }}"
+      alt="Camera stream"
+      class="w-full h-auto block"
+      style="max-height: 480px;"
+      onerror="this.onerror=null;this.src='';document.getElementById('noStream').style.display='block';"
+    />
+    <p id="noStream" class="text-gray-400 text-center hidden">
+      Stream not available. Make sure your Raspberry Pi camera and mjpg-streamer are running.
+    </p>
   </div>
 
-  <!-- Buttons -->
+  <!-- Control Buttons -->
   <div class="flex gap-2 mt-4">
     <button onclick="startCamera()" class="btn">Turn On Camera</button>
-    <button onclick="stopCamera()" class="btn bg-red-500 hover:bg-red-600">Turn Off Camera</button>
+    <button onclick="stopCamera()" class="btn bg-red-500 hover:bg-red-600">
+      Turn Off Camera
+    </button>
+    <button onclick="reloadStream()" class="btn bg-gray-500 hover:bg-gray-600">
+      Reload Stream
+    </button>
   </div>
 </div>
 
 <script>
   const baseApi = "{{ request.host_url }}api";
-  const streamImg = document.getElementById('stream');
-  const urlInput = document.getElementById('streamUrl');
+  const streamImg = document.getElementById("stream");
+  const urlInput = document.getElementById("streamUrl");
+  const noStreamMsg = document.getElementById("noStream");
+
+  async function fetchNgrokUrl() {
+    try {
+      const res = await fetch(`${baseApi}/get_ngrok`);
+      const data = await res.json();
+      if (data.url) {
+        const streamLink = data.url + "/?action=stream";
+        streamImg.src = streamLink;
+        urlInput.value = streamLink;
+        noStreamMsg.style.display = "none";
+      }
+    } catch (err) {
+      console.error("Failed to fetch ngrok URL:", err);
+    }
+  }
 
   function startCamera() {
     fetch(`${baseApi}/camera/on`, { method: "POST" })
       .then(() => {
         streamImg.src = urlInput.value.trim();
+        noStreamMsg.style.display = "none";
         alert("Camera turned ON");
       })
       .catch(err => console.error("Failed to start camera:", err));
@@ -44,9 +85,21 @@
     fetch(`${baseApi}/camera/off`, { method: "POST" })
       .then(() => {
         streamImg.src = "";
+        noStreamMsg.style.display = "block";
         alert("Camera turned OFF");
       })
       .catch(err => console.error("Failed to stop camera:", err));
   }
+
+  function reloadStream() {
+    const url = urlInput.value.trim();
+    if (!url) return;
+    streamImg.src = url + "&t=" + new Date().getTime(); // force reload
+    noStreamMsg.style.display = "none";
+  }
+
+  // Auto-refresh stream link every 30 seconds
+  fetchNgrokUrl();
+  setInterval(fetchNgrokUrl, 30000);
 </script>
 {% endblock %}

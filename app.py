@@ -8,73 +8,69 @@
 #  - Sensor data display
 #  - Communication with Raspberry Pi client
 #  - Database storage (PostgreSQL on Render)
+#  - Dynamic ngrok camera URL updates
 # ===============================
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from database import db
 from datetime import datetime
 import os
+import socket
 
 # --------------------------------
 # App Configuration
 # --------------------------------
 app = Flask(__name__)
 
-# DATABASE_URL will be automatically provided by Render
-# If not found (e.g., when testing locally), fallback to SQLite
+# DATABASE_URL (Render will inject automatically)
+# Fallback to local SQLite for testing
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///feeder.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Initialize SQLAlchemy (ORM for interacting with the database)
+# Initialize SQLAlchemy
 db.init_app(app)
 
-# --------------------------------
-# Database Models
-# --------------------------------
-# To avoid circular imports, models are placed in a separate file (models.py)
-# Import them after initializing db
+# Import models (after db.init_app to avoid circular imports)
 from models import Schedule, FeedLog, SensorData, Command
 
-# Create tables (only runs if they don’t exist yet)
+# Create tables if missing
 with app.app_context():
     db.create_all()
 
+# --------------------------------
+# 🔗 Store current ngrok link (updated by Pi)
+# --------------------------------
+current_ngrok_url = None
+
 
 # --------------------------------
-# 🏠 Home page — dashboard
+# 🏠 Dashboard
 # --------------------------------
 @app.route('/')
 def index():
-    # Get all feeding schedules
     schedules = Schedule.query.all()
-    # Get the latest sensor reading (for food level)
     latest_sensor = SensorData.query.order_by(SensorData.timestamp.desc()).first()
-    # Render dashboard
     return render_template('index.html', schedules=schedules, sensor=latest_sensor)
 
 
 # --------------------------------
-# 📅 Schedule management page
+# 📅 Schedule management
 # --------------------------------
 @app.route('/schedule', methods=['GET', 'POST'])
 def schedule():
     if request.method == 'POST':
-        # When form is submitted: create new schedule
-        time = request.form['time']
+        time_str = request.form['time']
         portion = request.form['portion']
-        new_schedule = Schedule(time=time, portion=portion)
+        new_schedule = Schedule(time=time_str, portion=portion)
         db.session.add(new_schedule)
         db.session.commit()
         return redirect(url_for('schedule'))
-
-    # When viewing: show all schedules
     schedules = Schedule.query.all()
     return render_template('schedule.html', schedules=schedules)
 
 
 @app.route('/delete_schedule/<int:id>')
 def delete_schedule(id):
-    # Delete selected schedule
     s = Schedule.query.get_or_404(id)
     db.session.delete(s)
     db.session.commit()
@@ -82,7 +78,7 @@ def delete_schedule(id):
 
 
 # --------------------------------
-# 📜 Feeding logs page
+# 📜 Feeding logs
 # --------------------------------
 @app.route('/logs')
 def logs():
@@ -91,7 +87,7 @@ def logs():
 
 
 # --------------------------------
-# 📡 Sensor data page
+# 📡 Sensor data
 # --------------------------------
 @app.route('/sensors')
 def sensors():
@@ -100,41 +96,57 @@ def sensors():
 
 
 # --------------------------------
-# 🎥 Camera control page + API
+# 🎥 Camera control + ngrok integration
 # --------------------------------
 @app.route('/camera')
 def camera():
-    # Basic page with ON/OFF buttons (handled in HTML)
-    return render_template('camera.html')
+    # Try to get local Pi IP (for LAN fallback)
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+    except Exception:
+        local_ip = "127.0.0.1"
+
+    # Default local stream (if ngrok not yet reported)
+    fallback_url = f"http://{local_ip}:8080/?action=stream"
+    stream_url = current_ngrok_url or fallback_url
+
+    return render_template('camera.html', title="Camera", stream_url=stream_url)
 
 
-@app.route('/api/camera/<action>')
-def camera_control(action):
-    # Accepts "on" or "off" from the dashboard
-    if action in ['on', 'off']:
-        cmd = Command(command=f'camera_{action}')
-        db.session.add(cmd)
-        db.session.commit()
-        return jsonify({'status': f'Camera turned {action}'})
-    return jsonify({'error': 'Invalid command'})
+# ---------- 🧠 API: ngrok updates ----------
+@app.route('/api/update_ngrok', methods=['POST'])
+def update_ngrok():
+    """Pi client sends its current ngrok URL here."""
+    global current_ngrok_url
+    data = request.get_json()
+    if not data or "url" not in data:
+        return jsonify({"error": "Missing 'url'"}), 400
+    current_ngrok_url = data["url"]
+    print(f"[INFO] Updated ngrok URL: {current_ngrok_url}")
+    return jsonify({"status": "ok"}), 200
 
 
-# --------------------------------
-# 🧠 API for Raspberry Pi Client
-# --------------------------------
-# The Raspberry Pi will poll this endpoint to get pending commands.
+@app.route('/api/get_ngrok', methods=['GET'])
+def get_ngrok():
+    """Web dashboard fetches the latest ngrok link."""
+    return jsonify({"url": current_ngrok_url})
+
+
+# ---------- 🧠 API: Pi Client ----------
 @app.route('/api/get_command')
 def get_command():
     cmd = Command.query.order_by(Command.id.asc()).first()
     if cmd:
         command_text = cmd.command
-        db.session.delete(cmd)  # Remove command once retrieved
+        db.session.delete(cmd)
         db.session.commit()
         return jsonify({'command': command_text})
-    return jsonify({'command': 'none'})  # No command waiting
+    return jsonify({'command': 'none'})
 
 
-# Pi uploads feeding log after each feeding
 @app.route('/api/upload_log', methods=['POST'])
 def upload_log():
     data = request.json
@@ -144,7 +156,6 @@ def upload_log():
     return jsonify({'status': 'log_saved'})
 
 
-# Pi uploads food level (VL53L0X reading)
 @app.route('/api/update_level', methods=['POST'])
 def update_level():
     data = request.json
@@ -155,12 +166,11 @@ def update_level():
 
 
 # --------------------------------
-# 🍖 Manual Feed Command
+# 🍖 Manual feed
 # --------------------------------
 @app.route('/feed_now', methods=['POST'])
 def feed_now():
     portion = request.form['portion']
-    # Create a new "feed" command for the Pi
     cmd = Command(command=f'feed:{portion}')
     db.session.add(cmd)
     db.session.commit()
