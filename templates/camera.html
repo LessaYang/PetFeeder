@@ -1,23 +1,52 @@
 {% extends "layout.html" %}
 {% block content %}
-<h2 class="text-2xl font-bold mb-4">Camera Control</h2>
+<div class="card">
+  <h2 class="text-xl font-semibold mb-2">Live Camera</h2>
+  <p class="mb-4">View your pet in real time below. The camera stream automatically updates when turned on.</p>
 
-<div class="bg-white p-4 rounded-lg shadow">
-  <button onclick="toggleCamera('on')" class="bg-green-600 text-white px-4 py-2 rounded mr-2">Turn ON</button>
-  <button onclick="toggleCamera('off')" class="bg-red-600 text-white px-4 py-2 rounded">Turn OFF</button>
-</div>
+  <!-- Stream URL form (optional override) -->
+  <form id="urlForm" class="mb-4">
+    <label for="streamUrl" class="block text-sm font-medium mb-1">Stream URL</label>
+    <input type="text" id="streamUrl" name="streamUrl"
+           class="w-full border border-gray-300 rounded px-2 py-1"
+           value="http://192.168.1.15:8080/?action=stream">
+  </form>
 
-<!-- Optional live stream preview (if PiCam running MJPEG server) -->
-<div class="bg-white p-4 rounded-lg shadow mt-4">
-  <h3 class="font-semibold mb-2">Live Stream</h3>
-  <img id="stream" src="http://raspberrypi.local:8080/stream" alt="Camera Stream" class="rounded w-full max-w-lg">
+  <!-- Live Stream -->
+  <div class="rounded overflow-hidden border border-gray-400 bg-black">
+    <img id="stream" src="http://<your_pi_ip>:8080/?action=stream"
+         alt="Camera stream"
+         class="w-full h-auto block" style="max-height: 480px;">
+  </div>
+
+  <!-- Buttons -->
+  <div class="flex gap-2 mt-4">
+    <button onclick="startCamera()" class="btn">Turn On Camera</button>
+    <button onclick="stopCamera()" class="btn bg-red-500 hover:bg-red-600">Turn Off Camera</button>
+  </div>
 </div>
 
 <script>
-function toggleCamera(state) {
-  fetch(`/api/camera/${state}`)
-    .then(res => res.json())
-    .then(data => alert(data.status || data.error));
-}
+  const baseApi = "{{ request.host_url }}api";
+  const streamImg = document.getElementById('stream');
+  const urlInput = document.getElementById('streamUrl');
+
+  function startCamera() {
+    fetch(`${baseApi}/camera/on`, { method: "POST" })
+      .then(() => {
+        streamImg.src = urlInput.value.trim();
+        alert("Camera turned ON");
+      })
+      .catch(err => console.error("Failed to start camera:", err));
+  }
+
+  function stopCamera() {
+    fetch(`${baseApi}/camera/off`, { method: "POST" })
+      .then(() => {
+        streamImg.src = "";
+        alert("Camera turned OFF");
+      })
+      .catch(err => console.error("Failed to stop camera:", err));
+  }
 </script>
 {% endblock %}
