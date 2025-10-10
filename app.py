@@ -76,6 +76,14 @@ def delete_schedule(id):
     db.session.commit()
     return redirect(url_for('schedule'))
 
+# --------------------------------
+# 🗓️ API: schedule fetch for Pi client
+# --------------------------------
+@app.route('/api/get_schedule', methods=['GET'])
+def get_schedule():
+    schedules = Schedule.query.all()
+    schedule_list = [{"time": s.time, "portion": s.portion} for s in schedules]
+    return jsonify({"schedule": schedule_list})
 
 # --------------------------------
 # 📜 Feeding logs
