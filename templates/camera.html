@@ -40,11 +40,11 @@
 
   <!-- Control Buttons -->
   <div class="flex gap-2 mt-4">
-    <button onclick="startCamera()" class="btn">Turn On Camera</button>
-    <button onclick="stopCamera()" class="btn bg-red-500 hover:bg-red-600">
+    <button type="button" onclick="startCamera()" class="btn">Turn On Camera</button>
+    <button type="button" onclick="stopCamera()" class="btn bg-red-500 hover:bg-red-600">
       Turn Off Camera
     </button>
-    <button onclick="reloadStream()" class="btn bg-gray-500 hover:bg-gray-600">
+    <button type="button" onclick="reloadStream()" class="btn bg-gray-500 hover:bg-gray-600">
       Reload Stream
     </button>
   </div>
@@ -56,15 +56,18 @@
   const urlInput = document.getElementById("streamUrl");
   const noStreamMsg = document.getElementById("noStream");
 
+  // Fetch latest ngrok URL and update iframe for mobile / remote users
   async function fetchNgrokUrl() {
     try {
       const res = await fetch(`${baseApi}/get_ngrok`);
       const data = await res.json();
       if (data.url) {
         const streamLink = data.url + "/?action=stream";
-        streamImg.src = streamLink;
-        urlInput.value = streamLink;
-        noStreamMsg.style.display = "none";
+        if (streamImg.src !== streamLink) {
+          streamImg.src = streamLink;
+          urlInput.value = streamLink;
+          noStreamMsg.style.display = "none";
+        }
       }
     } catch (err) {
       console.error("Failed to fetch ngrok URL:", err);
@@ -74,8 +77,7 @@
   function startCamera() {
     fetch(`${baseApi}/camera/on`, { method: "POST" })
       .then(() => {
-        streamImg.src = urlInput.value.trim();
-        noStreamMsg.style.display = "none";
+        fetchNgrokUrl(); // immediately update stream
         alert("Camera turned ON");
       })
       .catch(err => console.error("Failed to start camera:", err));
@@ -98,8 +100,8 @@
     noStreamMsg.style.display = "none";
   }
 
-  // Auto-refresh stream link every 30 seconds
+  // Auto-refresh stream link every 10 seconds to help mobile/remote users
   fetchNgrokUrl();
-  setInterval(fetchNgrokUrl, 30000);
+  setInterval(fetchNgrokUrl, 10000);
 </script>
 {% endblock %}
