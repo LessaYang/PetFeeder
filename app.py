@@ -13,7 +13,9 @@
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from database import db
-from datetime import datetime
+import logging
+from datetime import datetime, timedelta, timezone
+from werkzeug.serving import WSGIRequestHandler
 import os
 import socket
 
@@ -184,9 +186,19 @@ def feed_now():
     db.session.commit()
     return redirect(url_for('index'))
 
+# --------------------------------
+# Adjust timestamp timezone in logs to utc+7
+# --------------------------------
+class TZRequestHandler(WSGIRequestHandler):
+    def log(self, type, message, *args):
+        # Override to adjust timestamp
+        now = datetime.utcnow() + timedelta(hours=7)
+        date_str = now.strftime('%d/%b/%Y:%H:%M:%S +0700')
+        self.log_message('[%s] %s' % (date_str, message), *args)
 
 # --------------------------------
 # 🚀 Run locally
 # --------------------------------
 if __name__ == '__main__':
+    WSGIRequestHandler = TZRequestHandler
     app.run(debug=True)
