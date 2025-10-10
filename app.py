@@ -125,6 +125,20 @@ def camera():
 
     return render_template('camera.html', title="Camera", stream_url=stream_url)
 
+# ---------------- Camera on/off API ----------------
+@app.route('/api/camera/on', methods=['POST'])
+def camera_on():
+    cmd = Command(command="camera_on")
+    db.session.add(cmd)
+    db.session.commit()
+    return jsonify({"status": "ok", "message": "Camera ON command sent"}), 200
+
+@app.route('/api/camera/off', methods=['POST'])
+def camera_off():
+    cmd = Command(command="camera_off")
+    db.session.add(cmd)
+    db.session.commit()
+    return jsonify({"status": "ok", "message": "Camera OFF command sent"}), 200
 
 # ---------- 🧠 API: ngrok updates ----------
 @app.route('/api/update_ngrok', methods=['POST'])
