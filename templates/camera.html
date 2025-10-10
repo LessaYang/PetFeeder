@@ -3,13 +3,13 @@
 <div class="card">
   <h2 class="text-xl font-semibold mb-2">Live Camera</h2>
   <p class="mb-4">
-    View your pet in real time. The stream automatically updates when available.
+    View your pet in real time. The stream automatically updates every second.
   </p>
 
-  <!-- Stream URL field -->
+  <!-- Stream URL field (auto-filled from Flask) -->
   <form id="urlForm" class="mb-4">
     <label for="streamUrl" class="block text-sm font-medium mb-1">
-      Stream URL (auto-detected, change for ngrok if needed)
+      Stream Base URL (auto-detected, change if needed)
     </label>
     <input
       type="text"
@@ -25,21 +25,16 @@
     class="rounded overflow-hidden border border-gray-400 bg-black flex justify-center items-center"
     style="min-height: 300px;"
   >
-    <!-- Use video for MJPEG streaming to support mobile -->
-    <video
-      id="streamVideo"
-      autoplay
-      playsinline
-      muted
+    <img
+      id="stream"
+      src="{{ stream_url }}/latest.jpg"
+      alt="Camera stream"
       class="w-full h-auto block"
       style="max-height: 480px;"
-      onerror="document.getElementById('noStream').style.display='block';"
-    >
-      <source src="{{ stream_url }}/?action=stream" type="multipart/x-mixed-replace" />
-    </video>
-
+      onerror="this.onerror=null;this.src='';document.getElementById('noStream').style.display='block';"
+    />
     <p id="noStream" class="text-gray-400 text-center hidden">
-      Stream not available. Make sure your Raspberry Pi camera and mjpg-streamer are running.
+      Stream not available. Make sure your Raspberry Pi camera is running.
     </p>
   </div>
 
@@ -57,20 +52,28 @@
 
 <script>
   const baseApi = "{{ request.host_url }}api";
-  const streamVideo = document.getElementById("streamVideo");
+  const streamImg = document.getElementById("stream");
   const urlInput = document.getElementById("streamUrl");
   const noStreamMsg = document.getElementById("noStream");
+
+  function updateStream() {
+    const url = urlInput.value.trim();
+    if (!url) return;
+    streamImg.src = url + "/latest.jpg?t=" + new Date().getTime(); // force reload
+    noStreamMsg.style.display = "none";
+  }
+
+  // Auto-refresh every 1 second for live feed
+  setInterval(updateStream, 1000);
 
   async function fetchNgrokUrl() {
     try {
       const res = await fetch(`${baseApi}/get_ngrok`);
       const data = await res.json();
       if (data.url) {
-        const streamLink = data.url + "/?action=stream";
-        streamVideo.querySelector("source").src = streamLink;
-        streamVideo.load(); // reload video
-        urlInput.value = streamLink;
-        noStreamMsg.style.display = "none";
+        const baseUrl = data.url;
+        urlInput.value = baseUrl;
+        updateStream();
       }
     } catch (err) {
       console.error("Failed to fetch ngrok URL:", err);
@@ -80,9 +83,7 @@
   function startCamera() {
     fetch(`${baseApi}/camera/on`, { method: "POST" })
       .then(() => {
-        streamVideo.src = urlInput.value.trim();
-        streamVideo.load();
-        noStreamMsg.style.display = "none";
+        updateStream();
         alert("Camera turned ON");
       })
       .catch(err => console.error("Failed to start camera:", err));
@@ -91,7 +92,7 @@
   function stopCamera() {
     fetch(`${baseApi}/camera/off`, { method: "POST" })
       .then(() => {
-        streamVideo.pause();
+        streamImg.src = "";
         noStreamMsg.style.display = "block";
         alert("Camera turned OFF");
       })
@@ -99,15 +100,11 @@
   }
 
   function reloadStream() {
-    const url = urlInput.value.trim();
-    if (!url) return;
-    streamVideo.querySelector("source").src = url + "&t=" + new Date().getTime();
-    streamVideo.load();
-    noStreamMsg.style.display = "none";
+    updateStream();
   }
 
-  // Auto-refresh ngrok link every 30 seconds
+  // Initial fetch of ngrok URL if available
   fetchNgrokUrl();
-  setInterval(fetchNgrokUrl, 30000);
+  setInterval(fetchNgrokUrl, 30000); // refresh ngrok URL every 30s
 </script>
 {% endblock %}
