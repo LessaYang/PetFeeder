@@ -6,7 +6,7 @@
     View your pet in real time. The stream automatically updates when available.
   </p>
 
-  <!-- Stream URL field (auto-filled from Flask) -->
+  <!-- Stream URL field -->
   <form id="urlForm" class="mb-4">
     <label for="streamUrl" class="block text-sm font-medium mb-1">
       Stream URL (auto-detected, change for ngrok if needed)
@@ -31,7 +31,6 @@
       alt="Camera stream"
       class="w-full h-auto block"
       style="max-height: 480px;"
-      onerror="this.onerror=null;this.src='';document.getElementById('noStream').style.display='block';"
     />
     <p id="noStream" class="text-gray-400 text-center hidden">
       Stream not available. Make sure your Raspberry Pi camera and mjpg-streamer are running.
@@ -51,57 +50,81 @@
 </div>
 
 <script>
-  const baseApi = "{{ request.host_url }}api";
-  const streamImg = document.getElementById("stream");
-  const urlInput = document.getElementById("streamUrl");
-  const noStreamMsg = document.getElementById("noStream");
+const baseApi = "{{ request.host_url }}api";
+const streamImg = document.getElementById("stream");
+const urlInput = document.getElementById("streamUrl");
+const noStreamMsg = document.getElementById("noStream");
 
-  // Fetch latest ngrok URL and update iframe for mobile / remote users
-  async function fetchNgrokUrl() {
-    try {
-      const res = await fetch(`${baseApi}/get_ngrok`);
-      const data = await res.json();
-      if (data.url) {
-        const streamLink = data.url + "/?action=stream";
-        if (streamImg.src !== streamLink) {
-          streamImg.src = streamLink;
-          urlInput.value = streamLink;
-          noStreamMsg.style.display = "none";
-        }
+let isMobile = /Mobi|Android/i.test(navigator.userAgent);
+let mobileInterval = null;
+
+// Fetch latest ngrok URL from backend
+async function fetchNgrokUrl() {
+  try {
+    const res = await fetch(`${baseApi}/get_ngrok`);
+    const data = await res.json();
+    if (data.url) {
+      const streamLink = data.url + "/?action=stream";
+      urlInput.value = streamLink;
+      if (!isMobile) {
+        streamImg.src = streamLink; // desktop uses MJPEG
+        noStreamMsg.style.display = "none";
       }
-    } catch (err) {
-      console.error("Failed to fetch ngrok URL:", err);
     }
+  } catch (err) {
+    console.error("Failed to fetch ngrok URL:", err);
   }
+}
 
-  function startCamera() {
-    fetch(`${baseApi}/camera/on`, { method: "POST" })
-      .then(() => {
-        fetchNgrokUrl(); // immediately update stream
-        alert("Camera turned ON");
-      })
-      .catch(err => console.error("Failed to start camera:", err));
-  }
+// Start camera (send command to Pi)
+function startCamera() {
+  fetch(`${baseApi}/camera/on`, { method: "POST" })
+    .then(() => {
+      if (isMobile) startMobilePolling();
+      else streamImg.src = urlInput.value.trim();
+      noStreamMsg.style.display = "none";
+      alert("Camera turned ON");
+    })
+    .catch(err => console.error("Failed to start camera:", err));
+}
 
-  function stopCamera() {
-    fetch(`${baseApi}/camera/off`, { method: "POST" })
-      .then(() => {
-        streamImg.src = "";
-        noStreamMsg.style.display = "block";
-        alert("Camera turned OFF");
-      })
-      .catch(err => console.error("Failed to stop camera:", err));
-  }
+// Stop camera
+function stopCamera() {
+  fetch(`${baseApi}/camera/off`, { method: "POST" })
+    .then(() => {
+      if (isMobile) stopMobilePolling();
+      streamImg.src = "";
+      noStreamMsg.style.display = "block";
+      alert("Camera turned OFF");
+    })
+    .catch(err => console.error("Failed to stop camera:", err));
+}
 
-  function reloadStream() {
-    const url = urlInput.value.trim();
-    if (!url) return;
-    streamImg.src = url + "&t=" + new Date().getTime(); // force reload
+// Reload stream manually
+function reloadStream() {
+  const url = urlInput.value.trim();
+  if (!url) return;
+  streamImg.src = url + "&t=" + new Date().getTime(); // force reload
+  noStreamMsg.style.display = "none";
+}
+
+// Mobile polling for latest.jpg
+function startMobilePolling() {
+  if (mobileInterval) return;
+  mobileInterval = setInterval(() => {
+    const url = urlInput.value.replace(/\/\?action=stream$/, '/latest.jpg');
+    streamImg.src = url + "?t=" + new Date().getTime();
     noStreamMsg.style.display = "none";
-  }
+  }, 500);
+}
 
-  // Auto-refresh stream link every 10 seconds to help mobile/remote users
-  fetchNgrokUrl();
-  setInterval(fetchNgrokUrl, 10000);
+function stopMobilePolling() {
+  if (mobileInterval) clearInterval(mobileInterval);
+  mobileInterval = null;
+}
+
+// Auto-refresh ngrok URL every 30s
+fetchNgrokUrl();
+setInterval(fetchNgrokUrl, 30000);
 </script>
 {% endblock %}
